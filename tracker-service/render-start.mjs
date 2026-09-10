@@ -19,7 +19,7 @@ async function start() {
   await mkdir(secrets, { recursive: true, mode: 0o700 });
   await mkdir(jackettDirectory, { recursive: true, mode: 0o700 });
   // Render's secret environment variables become private files at runtime.
-  for (const name of ['BOT_TOKEN', 'TRACKER_SERVICE_SECRET', 'JACKETT_API_KEY', 'STATE_SERVICE_SECRET']) {
+  for (const name of ['BOT_TOKEN', 'TRACKER_SERVICE_SECRET', 'JACKETT_API_KEY', 'STATE_SERVICE_SECRET', 'DELIVERY_RELAY_SECRET']) {
     if (!process.env[name]) continue;
     const file = path.join(secrets, name.toLowerCase());
     await writeFile(file, process.env[name], { mode: 0o600 });

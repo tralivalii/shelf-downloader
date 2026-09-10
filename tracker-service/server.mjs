@@ -92,9 +92,13 @@ export function jobFailure(error) {
 
 async function telegram(config, method, body) {
   const form = body instanceof FormData;
-  const response = await fetch('https://api.telegram.org/bot' + config.botToken + '/' + method, {
+  const endpoint = config.telegramRelayURL ? config.telegramRelayURL + '/delivery/' + method
+    : 'https://api.telegram.org/bot' + config.botToken + '/' + method;
+  const response = await fetch(endpoint, {
     method: 'POST',
-    headers: form ? {} : { 'Content-Type': 'application/json' },
+    headers: { ...(form ? {} : { 'Content-Type': 'application/json' }),
+      ...(config.telegramRelayURL ? { authorization: 'Bearer ' + config.telegramRelaySecret } : {}) },
+    redirect: 'error',
     body: form ? body : JSON.stringify(body),
     signal: AbortSignal.any([AbortSignal.timeout(180_000), ...(config.signal ? [config.signal] : [])]),
   });
@@ -314,7 +318,9 @@ export async function main() {
   process.umask(0o077);
   const config = {
     secret: await secret('TRACKER_SERVICE_SECRET'),
-    botToken: await secret('BOT_TOKEN'),
+    botToken: process.env.TELEGRAM_RELAY_URL ? '' : await secret('BOT_TOKEN'),
+    telegramRelayURL: process.env.TELEGRAM_RELAY_URL,
+    telegramRelaySecret: process.env.TELEGRAM_RELAY_URL ? await secret('DELIVERY_RELAY_SECRET') : '',
     publicAccess: process.env.PUBLIC_ACCESS === 'true',
     allowed: new Set(process.env.PUBLIC_ACCESS === 'true' ? [] : (await secret('ALLOWED_USER_IDS')).split(',').map(value => value.trim())),
     maxUserDailyJobs: Number(process.env.MAX_USER_DAILY_JOBS || 3),
@@ -329,7 +335,10 @@ export async function main() {
     ffmpeg: process.env.FFMPEG_PATH || 'ffmpeg',
     ffprobe: process.env.FFPROBE_PATH || 'ffprobe',
   };
-  if (config.secret.length < 32 || !/^\d+:[\w-]{20,}$/.test(config.botToken) ||
+  const validTelegram = config.telegramRelayURL
+    ? /^https:\/\/[^/?#]+$/.test(config.telegramRelayURL) && config.telegramRelaySecret.length >= 32
+    : /^\d+:[\w-]{20,}$/.test(config.botToken);
+  if (config.secret.length < 32 || !validTelegram ||
     ![...config.allowed].every(id => /^[1-9]\d{0,15}$/.test(id)) ||
     ![config.maxUserDailyJobs, config.maxDailyJobs].every(n => Number.isSafeInteger(n) && n > 0 && n <= 1000)) throw new Error('invalid_configuration');
   await mkdir(config.dataDirectory, { recursive: true, mode: 0o700 });
