@@ -1,0 +1,5 @@
+**
+!tracker-service/
+!tracker-service/Dockerfile
+!tracker-service/Dockerfile.render
+!tracker-service/*.mjs

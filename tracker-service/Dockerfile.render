@@ -1,0 +1,10 @@
+FROM node:24-bookworm-slim
+RUN apt-get update && apt-get install -y --no-install-recommends aria2 ffmpeg ca-certificates && rm -rf /var/lib/apt/lists/*
+ADD --checksum=sha256:27d911f9e3b3ae5892d00d22bd49da8b5862d11eaa4ce12068a44b3c6383c2b6 https://github.com/Jackett/Jackett/releases/download/v0.24.2554/Jackett.Binaries.LinuxAMDx64.tar.gz /tmp/jackett.tar.gz
+RUN mkdir -p /opt/jackett && tar -xzf /tmp/jackett.tar.gz -C /opt/jackett --strip-components=1 && rm /tmp/jackett.tar.gz
+WORKDIR /app
+COPY tracker-service/*.mjs ./
+RUN mkdir /data && chown node:node /data
+USER node
+ENV SHELF_DATA_DIRECTORY=/data LISTEN_HOST=0.0.0.0 PORT=8788 PUBLIC_ACCESS=true JACKETT_URL=http://127.0.0.1:9117 JACKETT_INDEXERS=rutracker
+CMD ["node", "render-start.mjs"]
