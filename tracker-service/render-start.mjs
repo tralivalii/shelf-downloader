@@ -2,6 +2,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { setTimeout as delay } from 'node:timers/promises';
+import { deploymentTest } from './deployment-test.mjs';
 
 process.umask(0o077);
 const directory = path.resolve(process.env.SHELF_DATA_DIRECTORY || '/data');
@@ -45,6 +46,7 @@ async function start() {
     await delay(1000);
   }
   if (!ready) throw new Error('source_service_start_failed');
+  await deploymentTest();
   const bot = spawn(process.execPath, ['server.mjs'], { stdio: 'inherit', env: process.env });
   children.push(bot);
   bot.on('error', () => stop()); bot.on('exit', () => stop());
