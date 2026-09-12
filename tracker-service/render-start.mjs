@@ -30,9 +30,19 @@ async function start() {
     delete process.env[name];
   }
 
-  const rutrackerCookie = process.env.RUTRACKER_COOKIE || '';
-  const rutrackerUser = process.env.RUTRACKER_USERNAME || process.env.RUTRACKER_USER || '';
-  const rutrackerPass = process.env.RUTRACKER_PASSWORD || process.env.RUTRACKER_PASS || '';
+  const rutrackerSecretFile = path.join(secrets, 'rutracker_config.json');
+  let rutrackerCookie = process.env.RUTRACKER_COOKIE || '';
+  let rutrackerUser = process.env.RUTRACKER_USERNAME || process.env.RUTRACKER_USER || '';
+  let rutrackerPass = process.env.RUTRACKER_PASSWORD || process.env.RUTRACKER_PASS || '';
+
+  if (!rutrackerCookie && !rutrackerUser) {
+    try {
+      const saved = JSON.parse(await readFile(rutrackerSecretFile, 'utf8'));
+      rutrackerUser = saved.username || '';
+      rutrackerPass = saved.password || '';
+      rutrackerCookie = saved.cookie || '';
+    } catch {}
+  }
 
   if (rutrackerCookie || (rutrackerUser && rutrackerPass)) {
     const configItems = [];

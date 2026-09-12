@@ -174,6 +174,25 @@ export async function createService(config, db, { search = searchJackett, now = 
       if (request.method === 'GET' && url.pathname === '/health') {
         return reply(response, 200, { ok: true, indexers: config.jackett.indexers });
       }
+      if (url.pathname === '/admin/configure-rutracker') {
+        if (request.method !== 'POST') return reply(response, 404, { error: 'not_found' });
+        const body = await readJSON(request);
+        const username = String(body.username || '').trim();
+        const password = String(body.password || '').trim();
+        const cookie = String(body.cookie || '').trim();
+        if (!cookie && (!username || !password)) return reply(response, 400, { error: 'invalid_credentials' });
+        const jackettDir = path.resolve(config.dataDirectory, '../jackett/Indexers');
+        const secretsDir = path.resolve(config.dataDirectory, 'secrets');
+        await mkdir(jackettDir, { recursive: true, mode: 0o700 });
+        await mkdir(secretsDir, { recursive: true, mode: 0o700 });
+        const configItems = [];
+        if (username) configItems.push({ id: 'username', value: username });
+        if (password) configItems.push({ id: 'password', value: password });
+        if (cookie) configItems.push({ id: 'cookie', value: cookie });
+        await writeFile(path.join(jackettDir, 'rutracker.json'), JSON.stringify(configItems, null, 2), { mode: 0o600 });
+        await writeFile(path.join(secretsDir, 'rutracker_config.json'), JSON.stringify({ username, password, cookie }, null, 2), { mode: 0o600 });
+        return reply(response, 200, { ok: true });
+      }
       if (request.method !== 'POST') return reply(response, 404, { error: 'not_found' });
       const body = await readJSON(request);
       if (!chatAllowed(config, body)) return reply(response, 403, { error: 'private_bot' });
