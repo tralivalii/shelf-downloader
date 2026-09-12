@@ -19,6 +19,8 @@ function stop(code = 1) {
 async function start() {
   await mkdir(secrets, { recursive: true, mode: 0o700 });
   await mkdir(jackettDirectory, { recursive: true, mode: 0o700 });
+  const indexersDirectory = path.join(jackettDirectory, 'Indexers');
+  await mkdir(indexersDirectory, { recursive: true, mode: 0o700 });
   // Render's secret environment variables become private files at runtime.
   for (const name of ['BOT_TOKEN', 'TRACKER_SERVICE_SECRET', 'JACKETT_API_KEY', 'STATE_SERVICE_SECRET', 'DELIVERY_RELAY_SECRET']) {
     if (!process.env[name]) continue;
@@ -27,6 +29,23 @@ async function start() {
     process.env[name + '_FILE'] = file;
     delete process.env[name];
   }
+
+  const rutrackerCookie = process.env.RUTRACKER_COOKIE || '';
+  const rutrackerUser = process.env.RUTRACKER_USERNAME || process.env.RUTRACKER_USER || '';
+  const rutrackerPass = process.env.RUTRACKER_PASSWORD || process.env.RUTRACKER_PASS || '';
+
+  if (rutrackerCookie || (rutrackerUser && rutrackerPass)) {
+    const configItems = [];
+    if (rutrackerUser) configItems.push({ id: 'username', value: rutrackerUser });
+    if (rutrackerPass) configItems.push({ id: 'password', value: rutrackerPass });
+    if (rutrackerCookie) configItems.push({ id: 'cookie', value: rutrackerCookie });
+    await writeFile(path.join(indexersDirectory, 'rutracker.json'), JSON.stringify(configItems, null, 2), { mode: 0o600 });
+  }
+  delete process.env.RUTRACKER_COOKIE;
+  delete process.env.RUTRACKER_USERNAME;
+  delete process.env.RUTRACKER_USER;
+  delete process.env.RUTRACKER_PASSWORD;
+  delete process.env.RUTRACKER_PASS;
   const apiKey = (await readFile(process.env.JACKETT_API_KEY_FILE, 'utf8')).trim();
   await writeFile(path.join(jackettDirectory, 'ServerConfig.json'), JSON.stringify({
     Port: 9117, LocalBindAddress: '127.0.0.1', AllowExternal: false,
