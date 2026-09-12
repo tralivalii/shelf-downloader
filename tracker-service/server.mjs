@@ -181,8 +181,8 @@ export async function createService(config, db, { search = searchJackett, now = 
         const password = String(body.password || '').trim();
         const cookie = String(body.cookie || '').trim();
         if (!cookie && (!username || !password)) return reply(response, 400, { error: 'invalid_credentials' });
-        const jackettDir = path.resolve(config.dataDirectory, '../jackett/Indexers');
-        const secretsDir = path.resolve(config.dataDirectory, 'secrets');
+        const jackettDir = path.join(config.dataDirectory, 'jackett', 'Indexers');
+        const secretsDir = path.join(config.dataDirectory, 'secrets');
         await mkdir(jackettDir, { recursive: true, mode: 0o700 });
         await mkdir(secretsDir, { recursive: true, mode: 0o700 });
         const configItems = [];
